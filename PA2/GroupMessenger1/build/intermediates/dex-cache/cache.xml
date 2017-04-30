@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<items version="2" >
+
+    <item
+        is-multidex="false"
+        jar="C:\EverythingElse\Spring17\CSE586\Projects\PA2\GroupMessenger1\app\build\intermediates\incremental-classes\debug\instant-run-bootstrap.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="21.1.2"
+        sha1="72c2f7eab72fcd71967c5ac12bf0b7e6781a9616">
+        <dex dex="C:\EverythingElse\Spring17\CSE586\Projects\PA2\GroupMessenger1\app\build\intermediates\pre-dexed\debug\instant-run-bootstrap_d6b28363ac05e615b3cfd0cf0d9565495ec26cb0.jar" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="C:\EverythingElse\Spring17\CSE586\Projects\PA2\GroupMessenger1\app\build\intermediates\incremental-runtime-classes\debug\instant-run.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="21.1.2"
+        sha1="263a0ce3debf893cce6f398f24e3798183953e82">
+        <dex dex="C:\EverythingElse\Spring17\CSE586\Projects\PA2\GroupMessenger1\app\build\intermediates\pre-dexed\debug\instant-run_8af6db2d7b6076352d1144dd1a6bf8b710534f46.jar" />
+    </item>
+
+</items>

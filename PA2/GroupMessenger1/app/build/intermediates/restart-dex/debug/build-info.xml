@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<instant-run
+    abi="x86"
+    api-level="19"
+    density="ldpi"
+    format="8"
+    plugin-version="2.2.3"
+    timestamp="181314380814933"
+    token="3892316841215009972" >
+
+    <task
+        name="javac"
+        duration="0" />
+    <task
+        name="instant-run-dex"
+        duration="0" />
+    <task
+        name="instant-run-transform"
+        duration="0" />
+    <task
+        name="verifier"
+        duration="0" />
+
+    <build
+        timestamp="181287953783040"
+        verifier="CLASS_ADDED" >
+        <artifact
+            location="C:\EverythingElse\Spring17\CSE586\Projects\PA2\GroupMessenger1\app\build\outputs\apk\app-debug.apk"
+            type="MAIN" />
+    </build>
+    <build timestamp="181314380814933" />
+
+</instant-run>

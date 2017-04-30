@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<items version="2" >
+
+    <item
+        is-multidex="false"
+        jar="C:\EverythingElse\Spring17\CSE586\Projects\PA3\SimpleDht\app\build\intermediates\incremental-runtime-classes\debug\instant-run.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="21.1.2"
+        sha1="5757ea81b7b47324f9d5ec75dcc0e5dcd58f90b3">
+        <dex dex="C:\EverythingElse\Spring17\CSE586\Projects\PA3\SimpleDht\app\build\intermediates\pre-dexed\debug\instant-run_55278212456e05d4b9808eb3ef23abcb5e95d1bf.jar" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="C:\EverythingElse\Spring17\CSE586\Projects\PA3\SimpleDht\app\build\intermediates\incremental-classes\debug\instant-run-bootstrap.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="21.1.2"
+        sha1="26da585062caecf37625e47f064e760e83013da3">
+        <dex dex="C:\EverythingElse\Spring17\CSE586\Projects\PA3\SimpleDht\app\build\intermediates\pre-dexed\debug\instant-run-bootstrap_c37aa16d73e041de7dccbea1bed4882b6e3bf974.jar" />
+    </item>
+
+</items>

@@ -1,0 +1,30 @@
+#Internal package file, do not edit.
+#Fri Apr 28 20:30:47 EDT 2017
+2.base=C\:\\EverythingElse\\Spring17\\CSE586\\Projects\\PA3\\SimpleDht\\app\\build\\intermediates\\res\\resources-debug.ap_
+5.file=C\:\\EverythingElse\\Spring17\\CSE586\\Projects\\PA3\\SimpleDht\\app\\build\\intermediates\\res\\resources-debug.ap_\\res\\menu\\activity_simple_dht_main.xml
+5.set=ANDROID_RESOURCE
+3.base=C\:\\EverythingElse\\Spring17\\CSE586\\Projects\\PA3\\SimpleDht\\app\\build\\intermediates\\res\\resources-debug.ap_
+6.file=C\:\\EverythingElse\\Spring17\\CSE586\\Projects\\PA3\\SimpleDht\\app\\build\\intermediates\\res\\resources-debug.ap_\\res\\drawable-hdpi-v4\\ic_launcher.png
+2.set=ANDROID_RESOURCE
+4.base=C\:\\EverythingElse\\Spring17\\CSE586\\Projects\\PA3\\SimpleDht\\app\\build\\intermediates\\res\\resources-debug.ap_
+7.file=C\:\\EverythingElse\\Spring17\\CSE586\\Projects\\PA3\\SimpleDht\\app\\build\\intermediates\\transforms\\dex\\debug\\folders\\1000\\1f\\main\\classes.dex
+7.set=DEX
+count=9
+0.file=C\:\\EverythingElse\\Spring17\\CSE586\\Projects\\PA3\\SimpleDht\\app\\build\\intermediates\\res\\resources-debug.ap_\\res\\layout\\activity_simple_dht_main.xml
+5.base=C\:\\EverythingElse\\Spring17\\CSE586\\Projects\\PA3\\SimpleDht\\app\\build\\intermediates\\res\\resources-debug.ap_
+8.file=C\:\\EverythingElse\\Spring17\\CSE586\\Projects\\PA3\\SimpleDht\\app\\build\\intermediates\\res\\resources-debug.ap_\\res\\drawable-mdpi-v4\\ic_launcher.png
+4.set=ANDROID_RESOURCE
+6.base=C\:\\EverythingElse\\Spring17\\CSE586\\Projects\\PA3\\SimpleDht\\app\\build\\intermediates\\res\\resources-debug.ap_
+1.file=C\:\\EverythingElse\\Spring17\\CSE586\\Projects\\PA3\\SimpleDht\\app\\build\\intermediates\\res\\resources-debug.ap_\\AndroidManifest.xml
+1.set=ANDROID_RESOURCE
+7.base=C\:\\EverythingElse\\Spring17\\CSE586\\Projects\\PA3\\SimpleDht\\app\\build\\intermediates\\transforms\\dex\\debug\\folders\\1000\\1f\\main
+2.file=C\:\\EverythingElse\\Spring17\\CSE586\\Projects\\PA3\\SimpleDht\\app\\build\\intermediates\\res\\resources-debug.ap_\\res\\drawable-ldpi-v4\\ic_launcher.png
+6.set=ANDROID_RESOURCE
+0.base=C\:\\EverythingElse\\Spring17\\CSE586\\Projects\\PA3\\SimpleDht\\app\\build\\intermediates\\res\\resources-debug.ap_
+8.base=C\:\\EverythingElse\\Spring17\\CSE586\\Projects\\PA3\\SimpleDht\\app\\build\\intermediates\\res\\resources-debug.ap_
+3.file=C\:\\EverythingElse\\Spring17\\CSE586\\Projects\\PA3\\SimpleDht\\app\\build\\intermediates\\res\\resources-debug.ap_\\resources.arsc
+3.set=ANDROID_RESOURCE
+1.base=C\:\\EverythingElse\\Spring17\\CSE586\\Projects\\PA3\\SimpleDht\\app\\build\\intermediates\\res\\resources-debug.ap_
+4.file=C\:\\EverythingElse\\Spring17\\CSE586\\Projects\\PA3\\SimpleDht\\app\\build\\intermediates\\res\\resources-debug.ap_\\res\\drawable-xhdpi-v4\\ic_launcher.png
+8.set=ANDROID_RESOURCE
+0.set=ANDROID_RESOURCE

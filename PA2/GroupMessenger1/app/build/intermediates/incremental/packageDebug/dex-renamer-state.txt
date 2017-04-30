@@ -1,0 +1,4 @@
+#Tue Apr 11 00:59:41 EDT 2017
+base.0=C\:\\EverythingElse\\Spring17\\CSE586\\Projects\\PA2\\GroupMessenger1\\app\\build\\intermediates\\transforms\\dex\\debug\\folders\\1000\\1f\\main
+renamed.0=classes.dex
+file.0=C\:\\EverythingElse\\Spring17\\CSE586\\Projects\\PA2\\GroupMessenger1\\app\\build\\intermediates\\transforms\\dex\\debug\\folders\\1000\\1f\\main\\classes.dex
