@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 import android.content.ContentProvider;
 import android.content.ContentValues;
@@ -35,25 +34,20 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.telephony.TelephonyManager;
 import android.util.Log;
-
-
-import static android.content.ContentValues.TAG;
 import static android.content.Context.MODE_PRIVATE;
 
 public class SimpleDynamoProvider extends ContentProvider {
 
 	static final int SERVER_PORT = 10000;
-	static int sequence = 0;
-	static final String REMOTE_PORT0 = "11108";
 	static final String OPERATION_INSERT = "insert";
 	static final String OPERATION_QUERY = "query";
 	static final String OPERATION_QUERY_GA = "query_global";
-	static final String OPERATION_JOIN = "join";
-	static final String OPERATION_HASHCHECK = "OPERATION_HASHCHECK";
-	static final String FIRST_PORT = "5554";
-	Map<String, Node> map = new ConcurrentHashMap<String, Node>();
+    static final String OPERATION_DAMAGECONTROL = "OPERATION_DAMAGECONTROL";
 	HashMap<String, String> hashValues = new LinkedHashMap<String, String>();
 	static String portStr  = null;
+    ArrayList<String> missedDataList;
+    Map<String, ArrayList<String>> missedDataMap = new HashMap<String, ArrayList<String>>();
+    String current_port = null;
 
     @Override
     public int delete(Uri uri, String selection, String[] selectionArgs) {
@@ -61,7 +55,7 @@ public class SimpleDynamoProvider extends ContentProvider {
             getContext().deleteFile(selection);
 
         } catch (Exception e) {
-            e.printStackTrace();
+//            e.printStackTrace();
         }
         return 0;
     }
@@ -75,62 +69,85 @@ public class SimpleDynamoProvider extends ContentProvider {
 
 	@Override
     public Uri insert(Uri uri, ContentValues values) {
-        {
-                hashValues = sortByValue(hashValues);
-                Log.v("insert", values.toString());
-                String key = values.get("key").toString();
+//                Log.v("insert", values.toString());
+        String key = values.get("key").toString();
+        if(key.equalsIgnoreCase("other_medium")){
+            try{
                 String value = values.get("value").toString();
-                Set<String> ports = hashValues.keySet();
-                Node node = map.get(portStr);
-                Operation op = new Operation(OPERATION_INSERT, key, value);
-                node.setOperation(op);
-                System.out.println("Ports" +ports.toString());
-                try {
-                    String hashKey = genHash(key);
-//                    node.putObj(key, value);
-                    String finalPort = null;
-                    String firstPort = ports.iterator().next();
-                    for (String port : ports) {
-//                System.out.println("hashvalue comparision of key: " +key + " with port :" +port +" and the value is : " +hashKey.compareTo(hashValues.get(port)));
-                        if (hashKey.compareTo(hashValues.get(port)) < 0) {
-                            finalPort = port;
-                            break;
-                        }
-                    }
-                    if (finalPort == null) {
-                        finalPort = firstPort;
-                    }
-                    List<String> portList = new ArrayList<String>();
-                    int count = 0;
-                    for (String port : ports) {
-                        if (portList.size() == 3)
-                            break;
-                        if (count > 0 && count <= 3) {
-                            portList.add(port);
-                            count++;
-                        }
-                        if (port.compareTo(finalPort) == 0) {
-                            portList.add(port);
-                            count++;
-                        }
-
-                    }
-                    for (String port : ports) {
-                        if (portList.size() == 3)
-                            break;
-                        portList.add(port);
-                    }
-                    for (int i = 0; i < portList.size(); i++) {
-                        finalPort = portList.get(i);
-                        System.out.println("The key " + values.get("key").toString() + "is going to the port " + finalPort);
-                        new ClientTask(node, values, finalPort).executeOnExecutor(AsyncTask.SERIAL_EXECUTOR);
-                    }
-                }catch (NoSuchAlgorithmException e) {
-                    e.printStackTrace();
-                }
-            return uri;
+                String[] arr = value.split(" ");
+                FileOutputStream output = getContext().openFileOutput(arr[0], MODE_PRIVATE);
+                output.write(arr[1].getBytes());
+                Log.v("###inserting:", arr[0]+ " " +arr[1]);
+                output.flush();
+                output.close();
+            } catch (Exception e){
+//                e.printStackTrace();
             }
         }
+        else {
+            Set<String> ports = hashValues.keySet();
+            try {
+                String hashKey = genHash(key);
+                String finalPort = null;
+                String firstPort = ports.iterator().next();
+                for (String port : ports) {
+                    if (hashKey.compareTo(hashValues.get(port)) < 0) {
+                        finalPort = port;
+                        break;
+                    }
+                }
+                if (finalPort == null) {
+                    finalPort = firstPort;
+                }
+                List<String> portList = getPortsForReplication(finalPort);
+//                System.out.println("#### The key value " + values + " are sent to the ports" + portList);
+                new ClientTask(values, portList).executeOnExecutor(AsyncTask.SERIAL_EXECUTOR);
+            } catch (Exception e) {
+//                e.printStackTrace();
+            }
+        }
+        return uri;
+        }
+
+    private List<String> getPortsForReplication(String port){
+        List<String> list = new ArrayList<String>();
+        if(port.compareTo("5562") == 0){
+            list.add("5562");
+            list.add("5556");
+            list.add("5554");
+        }
+        else if(port.compareTo("5556") == 0){
+            list.add("5556");
+            list.add("5554");
+            list.add("5558");
+        }
+        else if(port.compareTo("5554") == 0){
+            list.add("5554");
+            list.add("5558");
+            list.add("5560");
+        }
+        else if(port.compareTo("5558") == 0){
+            list.add("5558");
+            list.add("5560");
+            list.add("5562");
+        }
+        else if(port.compareTo("5560") == 0){
+            list.add("5560");
+            list.add("5562");
+            list.add("5556");
+        }
+        return list;
+    }
+
+    private List<String> getPortsForMissingData(){
+        List<String> list = new ArrayList<String>();
+        list.add("5554");
+        list.add("5556");
+        list.add("5558");
+        list.add("5560");
+        list.add("5562");
+        return list;
+    }
 
     @Override
 	public boolean onCreate() {
@@ -139,31 +156,38 @@ public class SimpleDynamoProvider extends ContentProvider {
         portStr = tel.getLine1Number().substring(tel.getLine1Number().length() - 4);
         final String myPort = String.valueOf((Integer.parseInt(portStr) * 2));
         try {
-            Node node = new Node(portStr);
-            node.setPredecessor(myPort);
-            node.setSuccessor(myPort);
-            node.setPortNum(portStr);
-            Operation op = new Operation(OPERATION_JOIN);
-            node.setOperation(op);
-            map.put(portStr, node);
+            current_port = myPort;
+            hashValues.put("5562", genHash("5562"));
+            hashValues.put("5556", genHash("5556"));
+            hashValues.put("5554", genHash("5554"));
+            hashValues.put("5558", genHash("5558"));
+            hashValues.put("5560", genHash("5560"));
             ServerSocket serverSocket = new ServerSocket(SERVER_PORT);
             new ServerTask().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, serverSocket);
-            new ClientTask(node, REMOTE_PORT0).executeOnExecutor(AsyncTask.SERIAL_EXECUTOR);
+            damageControl();
         }catch (IOException e) {
-            Log.e(TAG, "Can't create a ServerSocket");
-            e.printStackTrace();
+//            Log.e(TAG, "Can't create a ServerSocket");
+//            e.printStackTrace();
         } catch (Exception e) {
-            Log.e(TAG, "Error in onCreate method");
-            e.printStackTrace();
+//            Log.e(TAG, "Error in onCreate method");
+//            e.printStackTrace();
         }
         return false;
     }
 
+    private void damageControl(){
+            List<String> ports = getPortsForMissingData();
+                try {
+                    new ClientTask(ports).executeOnExecutor(AsyncTask.SERIAL_EXECUTOR);
+                }  catch (Exception e) {
+//                    e.printStackTrace();
+                }
+        }
+
     @Override
     public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs,
                         String sortOrder) {
-            System.out.println("The selection used for query is " + selection);
-            FileInputStream input = null;
+//            System.out.println("The selection used for query is " + selection);
             if (selection.equals("*")) {
                 return queryAG();
             }
@@ -177,7 +201,6 @@ public class SimpleDynamoProvider extends ContentProvider {
                 Set<String> ports = hashValues.keySet();
                 String finalPort = null;
                 String firstPort = ports.iterator().next();
-                ;
                 for (String port : ports) {
                     if (hashKey.compareTo(hashValues.get(port)) < 0) {
                         finalPort = port;
@@ -187,14 +210,14 @@ public class SimpleDynamoProvider extends ContentProvider {
                 if (finalPort == null) {
                     finalPort = firstPort;
                 }
-                Node node = new Node(portStr);
-                Operation op = new Operation(OPERATION_QUERY, selection);
-                node.setOperation(op);
-                System.out.println("The key used for query is " + selection + ", the port is " + finalPort);
-                String value = (String)new ClientTask(node, Integer.toString(Integer.parseInt(finalPort) * 2)).executeOnExecutor(AsyncTask.SERIAL_EXECUTOR).get();
+
+                String data = OPERATION_QUERY + " " + selection+ " " + portStr;
+                List<String> portsList = getPortsForReplication(finalPort);
+                String value = (String)new ClientTask(data, portsList).executeOnExecutor(AsyncTask.SERIAL_EXECUTOR).get();
                 String[] req = new String[2];
                 req[0] = "key";
                 req[1] = "value";
+                Log.v("###query result:", selection + " " + value);
                 MatrixCursor matrixCursor = new MatrixCursor(req);
                 String[] in = new String[2];
                 in[0] = selection;
@@ -203,13 +226,13 @@ public class SimpleDynamoProvider extends ContentProvider {
                 return matrixCursor;
 
             } catch (NoSuchAlgorithmException e) {
-                Log.e(SimpleDynamoProvider.class.getName(), "Query failed - Hash error");
-                e.printStackTrace();
+//                Log.e(SimpleDynamoProvider.class.getName(), "Query failed - Hash error");
+//                e.printStackTrace();
             } catch (Exception e) {
-                Log.e(SimpleDynamoProvider.class.getName(), "Query failed");
-                e.printStackTrace();
+//                Log.e(SimpleDynamoProvider.class.getName(), "Query failed");
+//                e.printStackTrace();
             }
-            Log.v("query", selection);
+//            Log.v("query", selection);
             return null;
         }
 
@@ -239,7 +262,7 @@ public class SimpleDynamoProvider extends ContentProvider {
             File path = getContext().getFilesDir();
             for (File file : path.listFiles()) {
                 String key = file.getName();
-                System.out.println("The key found in query @ is " +key);
+//                System.out.println("The key found in query @ is " +key);
                 FileInputStream input = getContext().openFileInput(key);
                 InputStreamReader inputReader = new InputStreamReader(input);
                 BufferedReader reader = new BufferedReader(inputReader);
@@ -250,7 +273,7 @@ public class SimpleDynamoProvider extends ContentProvider {
                 matrixCursor.addRow(in);
             }
         }   catch (IOException e) {
-            e.printStackTrace();
+//            e.printStackTrace();
         }
         return matrixCursor;
     }
@@ -260,22 +283,14 @@ public class SimpleDynamoProvider extends ContentProvider {
         req[0] = "key";
         req[1] = "value";
         MatrixCursor matrixCursor = new MatrixCursor(req);
-        Set<String> ports = hashValues.keySet();
-        Operation operation = new Operation(OPERATION_QUERY_GA);
-        Node result = null;
+        List<ConcurrentHashMap<String,String>> maps = null;
         try {
-            for(String port : ports){
-                if(result == null){
-                    result = new Node(hashValues.get(portStr));
-                }
-                result.setOperation(operation);
-                result = (Node) new ClientTask(result , Integer.toString(Integer.parseInt(port) * 2)).executeOnExecutor(AsyncTask.SERIAL_EXECUTOR).get();
-            }
-            List<Object> maps = result.getObjects();
+            String query_data = OPERATION_QUERY_GA;
+            maps = (ArrayList<ConcurrentHashMap<String,String>>) new ClientTask(query_data).executeOnExecutor(AsyncTask.SERIAL_EXECUTOR).get();
             for(int i =0; i < maps.size() ; i++){
                 Map<String, String> curMap = (ConcurrentHashMap) maps.get(i);
                 Set<String> keys = curMap.keySet();
-                System.out.println("Keyset in queryAG : " +keys);
+//                System.out.println("Keyset in queryAG : " +keys);
                 for(String key : keys){
                     String[] input = new String[2];
                     input[0] = key;
@@ -284,32 +299,9 @@ public class SimpleDynamoProvider extends ContentProvider {
                 }
             }
         }   catch (Exception e) {
-            e.printStackTrace();
+//            e.printStackTrace();
         }
         return matrixCursor;
-    }
-
-    //  source - http://stackoverflow.com/questions/109383/sort-a-mapkey-value-by-values-java
-    public LinkedHashMap<String, String> sortByValue(
-            HashMap<String, String> map) {
-        LinkedHashMap<String, String> result =
-                new LinkedHashMap<String,String>();
-        List<String> keys = new ArrayList<String>(map.keySet());
-        List<String> values = new ArrayList<String>(map.values());
-        Collections.sort(keys);
-        Collections.sort(values);
-        for(String val: values){
-            for(String key: keys){
-                String c1 = map.get(key);
-                String c2 = val;
-                if (c1.equals(c2)) {
-                    keys.remove(key);
-                    result.put(key, val);
-                    break;
-                }
-            }
-        }
-        return result;
     }
 
     //      source - PA1
@@ -318,55 +310,67 @@ public class SimpleDynamoProvider extends ContentProvider {
         @Override
         protected Void doInBackground(ServerSocket... sockets) {
             ServerSocket serverSocket = sockets[0];
-            System.out.println("###### In server method");
-            String key_delete = null;
-            Node predecessor_node = (Node) map.get(FIRST_PORT);
-            Node successor_node = null;
             try {
                 while (true) {
                     Socket socket = serverSocket.accept();
+                    InputStreamReader inputStream = new InputStreamReader(socket.getInputStream());
+                    BufferedReader bufferedReader = new BufferedReader(inputStream);
+                    String data = bufferedReader.readLine();
+//                    bufferedReader.close();
+//                    inputStream.close();
                     PrintWriter out = new PrintWriter(socket.getOutputStream());
-                    ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
-                    Node node = (Node) in.readObject();
-//                    System.out.println("###### We are here");
-                    Operation op = node.getOperation();
-//                    System.out.println("##### node.getPortNum() :" +node.getKey());
-//                    System.out.println("##### first port :" +FIRST_PORT);
-                    String operation = op.getOperation();
-                    if(operation.equals(OPERATION_HASHCHECK)){
-                        hashValues = node.getHashValues();
-                    }
-                    if(operation.equals(OPERATION_JOIN)) {
-                        hashValues.put(node.getPortNum(), genHash(node.getPortNum()));
-                        Set<String> keySet = hashValues.keySet();
-                        for(String port: keySet){
-//                            System.out.println("### port num :" +port);
-                            callClient(node, port, hashValues);
+//                    ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
+//                    Node node = (Node) in.readObject();
+//                    Operation op = node.getOperation();
+                    String[] values = data.split(" ");
+                    String operation = values[0];
+//                    String port = node.getPortNum();
+                    if(operation.equals(OPERATION_DAMAGECONTROL)) {
+//                        System.out.println("### The datamap retrieved from port " +current_port+ " is " +missedDataMap);
+                        ArrayList<String> dataList = missedDataMap.get(values[1]);
+//                        System.out.println("### The datalist retrieved from port " +current_port + " is " +dataList);
+                        if(dataList != null && dataList.size() > 0) {
+                            StringBuilder hello = new StringBuilder();
+                            for(String keyValue: dataList){
+                                hello.append(keyValue);
+                                hello.append("#");
+                            }
+                            out.write(hello + "\n");
                         }
+                        else{
+                            out.write("OK" + "\n");
+                        }
+                        out.flush();
+                        out.close();
+                        missedDataMap.put(values[1], null);
+                        socket.close();
                     }
                     if(operation.equals(OPERATION_INSERT)){
-                        Map<String, String> pair = node.getObj();
-                        String key = pair.keySet().iterator().next();
-                        String value = pair.get(key);
-                        System.out.println("key inserted is " +key + " value inserted is " +value);
-//                        System.out.println("##### insert runner : value " +value);
-                        FileOutputStream output = getContext().openFileOutput(key, MODE_PRIVATE);
-                        output.write(value.getBytes());
-                        output.flush();
-                        output.close();
+                        ContentValues content = new ContentValues();
+                        content.put("key", "other_medium");
+                        content.put("value", values[1] + " " +values[2]);
+                        Uri.Builder uriBuilder = new Uri.Builder();
+                        uriBuilder.scheme("content").authority("edu.buffalo.cse.cse486586.simpledynamo.provider");
+                        insert(uriBuilder.build(), content);
+                        out.write("OK" + " \n");
+                        out.flush();
+                        out.close();
+                        socket.close();
                     }
                     if(operation.equals(OPERATION_QUERY)){
-                        FileInputStream input = getContext().openFileInput(op.getOp_key());
+                        Log.v("###querying in server:", values[1]);
+                        FileInputStream input = getContext().openFileInput(values[1]);
                         InputStreamReader inputReader = new InputStreamReader(input);
                         BufferedReader reader = new BufferedReader(inputReader);
                         String value = reader.readLine();
+//                        System.out.println("result retrieved " + value);
                         out.write(value + "\n");
                         out.flush();
                         out.close();
                         socket.close();
                     }
                     if(operation.equals(OPERATION_QUERY_GA)){
-                        Map<String, String> ag = new ConcurrentHashMap<String, String>();
+                        ConcurrentHashMap<String, String> ag = new ConcurrentHashMap<String, String>();
                         try {
                             File path = getContext().getFilesDir();
                             for (File file : path.listFiles()) {
@@ -377,230 +381,239 @@ public class SimpleDynamoProvider extends ContentProvider {
                                 String value = reader.readLine();
                                 ag.put(key, value);
                             }
-                            node.addObject(ag);
                             ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
-                            output.writeObject(node);
+                            output.writeObject(ag);
                             output.flush();
                             out.close();
                             socket.close();
 
                         }   catch (IOException e) {
-                            e.printStackTrace();
+//                            e.printStackTrace();
                         }
 
                     }
-                    out.write("OK");
+                    out.write("OK" + "\n");
                     out.flush();
                     out.close();
                     socket.close();
                 }
-
-
             } catch (IOException e) {
-                e.printStackTrace();
-            } catch (ClassNotFoundException e) {
-                e.printStackTrace();
+//                e.printStackTrace();
             } catch (Exception e) {
-                e.printStackTrace();
+//                e.printStackTrace();
             }
-
             return null;
-        }
-
-        private void callClient(Node node, String port, Map<String, String> hash) {
-
-            new ClientTask(node, port, hash).executeOnExecutor(AsyncTask.SERIAL_EXECUTOR);
         }
     }
 
     private class ClientTask extends AsyncTask<String, Void, Object> {
-
-        private boolean join = false;
         private boolean insert = false;
         private boolean query = false;
         private boolean query_ga = false;
-        private Node node1;
-        private String port;
-        Map<String, String> hash;
+        private boolean damage_control = false;
         ContentValues values1;
+        List<String> portList;
+        List<String> allPorts;
+        String[] query_stuff;
+        String query_data;
+        String query_ga_data;
 
-        public ClientTask(Node node, String port){
-            this.node1 = node;
-            this.port = port;
-            if(node1.getOperation() != null && node1.getOperation().getOperation() != null
-                    && node1.getOperation().getOperation().equals(OPERATION_QUERY)){
-                query = true;
-            }
-            else if(node1.getOperation() != null && node1.getOperation().getOperation() != null
-                    && node1.getOperation().getOperation().equals(OPERATION_QUERY_GA)){
-                query_ga = true;
-            }
+        ClientTask(String query_data, List<String> portList){
+            this.query_data = query_data;
+            query_stuff = query_data.split(" ");
+            query = true;
+            this.portList = portList;
         }
 
-        public ClientTask(Node node, ContentValues values, String port){
-            this.node1 = node;
+        ClientTask(String query_ga_data){
+            query_ga = true;
+            this.query_ga_data = query_ga_data;
+        }
+
+        ClientTask(List<String> allPorts){
+            this.allPorts = allPorts;
+            this.damage_control = true;
+        }
+
+        ClientTask(ContentValues values, List<String> portList){
             this.values1 = values;
-            this.port = Integer.toString(Integer.parseInt(port) * 2);
+            this.portList = portList;
             insert = true;
-        }
-
-        public ClientTask(Node node, String port, Map<String, String> hash){
-            this.node1 = node;
-            this.port = Integer.toString(Integer.parseInt(port) * 2);
-            this.hash = new HashMap<String, String>(hash);
-            join = true;
         }
 
         @Override
         protected Object doInBackground(String... msgs) {
             try {
-//                System.out.println("reached client");
-                String msgReceived = null;
-                if(join){
-                    Socket socket = new Socket(InetAddress.getByAddress(new byte[]{10, 0, 2, 2}),
-                            (Integer.parseInt(port)));
-                    ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
-                    Operation op = new Operation(OPERATION_HASHCHECK);
-                    node1.setOperation(op);
-                    node1.addHashValueMap(hash);
-                    out.writeObject(node1);
-                    out.flush();
+                if(damage_control){
                     String value = null;
-                    while (true) {
-                        InputStreamReader inputStream = new InputStreamReader(socket.getInputStream());
-                        BufferedReader bufferedReader = new BufferedReader(inputStream);
-                        msgReceived = bufferedReader.readLine();
-//                        System.out.println("msgReceived :" +msgReceived);
-                        if (msgReceived != null && !msgReceived.isEmpty()) {
-                            value = msgReceived;
-                            bufferedReader.close();
-                            inputStream.close();
-                            out.close();
-                            socket.close();
-                            break;
-                        }
-                    }
-                    join = false;
-                    return value;
-                }
-                else if(insert){
-                    Socket socket = new Socket(InetAddress.getByAddress(new byte[]{10, 0, 2, 2}),
-                            (Integer.parseInt(port)));
-                    ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
-                    String key1 = values1.get("key").toString();
-                    String value1 = values1.get("value").toString();
-                    node1.putObj(key1, value1);
-                    System.out.println("The key value pair " +node1.getObj()+ " is going to port " +port);
-                    out.writeObject(node1);
-                    out.flush();
-                    String value = null;
-                    while (true) {
-                        InputStreamReader inputStream = new InputStreamReader(socket.getInputStream());
-                        BufferedReader bufferedReader = new BufferedReader(inputStream);
-                        msgReceived = bufferedReader.readLine();
-//                        System.out.println("msgReceived :" +msgReceived);
-                        if (msgReceived != null && !msgReceived.isEmpty()) {
-                            value = msgReceived;
-                            bufferedReader.close();
-                            inputStream.close();
-                            out.close();
-                            socket.close();
-                            break;
-                        }
-                    }
-                    insert = false;
-                    return value;
-                }
-                else if(query){
-                    {
-                        Socket socket = new Socket(InetAddress.getByAddress(new byte[]{10, 0, 2, 2}),
-                                (Integer.parseInt(port)));
-                        ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
-                        out.writeObject(node1);
-                        out.flush();
-                        String value = null;
-                        while (true) {
+                    List<String> total = new ArrayList<String>();
+                    for(String port1: allPorts) {
+                        try {
+                            port1 = Integer.toString(Integer.parseInt(port1) * 2);
+//                            System.out.println("Port tried is " +port1);
+                            Socket socket = new Socket(InetAddress.getByAddress(new byte[]{10, 0, 2, 2}),
+                                    (Integer.parseInt(port1)));
+                            PrintWriter out = new PrintWriter(socket.getOutputStream());
+                            out.write(OPERATION_DAMAGECONTROL + " " + current_port + "\n");
+                            out.flush();
                             InputStreamReader inputStream = new InputStreamReader(socket.getInputStream());
                             BufferedReader bufferedReader = new BufferedReader(inputStream);
-                            msgReceived = bufferedReader.readLine();
-                            if (msgReceived != null && !msgReceived.isEmpty()) {
-                                value = msgReceived;
+                            value = bufferedReader.readLine().toString();
+                            if(value != null && value.length()>0 && !value.equalsIgnoreCase("OK")) {
+                                total.add(value);
+                            }
+                            bufferedReader.close();
+                            inputStream.close();
+                            out.close();
+                            socket.close();
+                        } catch (Exception e) {
+//                            System.out.println("Exception caught");
+                        }
+                    }
+                    if(total != null && total.size() > 0) {
+                        for (String data : total) {
+                            String[] keyValueList = data.split("#");
+                            for (String keyValue : keyValueList) {
+                                String[] arr = keyValue.split(" ");
+                                ContentValues content = new ContentValues();
+                                content.put("key", "other_medium");
+                                content.put("value", arr[0] + " " + arr[1]);
+                                Uri.Builder uriBuilder = new Uri.Builder();
+                                uriBuilder.scheme("content").authority("edu.buffalo.cse.cse486586.simpledynamo.provider");
+                                insert(uriBuilder.build(), content);
+                            }
+                        }
+                    }
+//                    System.out.println("total list retrieved from damage control block is " +total);
+                    damage_control = false;
+                    return total;
+                }
+                else if(insert){
+                        String key1 = values1.get("key").toString();
+                        String value1 = values1.get("value").toString();
+                        String value = null;
+                        for (String port : portList) {
+                            String port1 = Integer.toString(Integer.parseInt(port) * 2);
+                            try {
+//                                System.out.println("calling the port " + port1);
+                                Socket socket = new Socket(InetAddress.getByAddress(new byte[]{10, 0, 2, 2}),
+                                        (Integer.parseInt(port1)));
+                                PrintWriter out = new PrintWriter(socket.getOutputStream());
+                                out.write(OPERATION_INSERT +" "+ key1 +" "+ value1 + "\n");
+                                out.flush();
+                                InputStreamReader inputStream = new InputStreamReader(socket.getInputStream());
+                                BufferedReader bufferedReader = new BufferedReader(inputStream);
+                                value = bufferedReader.readLine().toString();
                                 bufferedReader.close();
                                 inputStream.close();
                                 out.close();
                                 socket.close();
-                                break;
+                            } catch (Exception exception) {
+                                exception.printStackTrace();
+//                                System.out.println("data added to missedDataList for port " + port1 + " is " + key1 + ", " + value1);
+                                if (missedDataMap.get(port1) != null) {
+                                    missedDataList = missedDataMap.get(port1);
+                                    missedDataList.add(key1 + " " + value1);
+                                } else {
+                                    missedDataList = new ArrayList<String>();
+                                    missedDataList.add(key1 + " " + value1);
+                                }
+                                missedDataMap.put(port1, missedDataList);
+//                                System.out.println("missedDataMap: " + missedDataMap);
                             }
                         }
-                        query = false;
-                        return value;
-                    }
+                        insert = false;
                 }
-                else if(query_ga){
-                    {
-                        Socket socket = new Socket(InetAddress.getByAddress(new byte[]{10, 0, 2, 2}),
-                                (Integer.parseInt(port)));
-                        ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
-                        out.writeObject(node1);
-                        out.flush();
-                        Node result = null;
-                        while (true) {
-                            ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
-                            Node node = (Node) in.readObject();
-                            if (node != null) {
-                                result = node;
-                                in.close();
-                                out.close();
-                                socket.close();
-                                break;
+                else if(query){
+                        List<String> values = new ArrayList<String>();
+                        String final_value = new String();
+                        String non_null_port = null;
+                        for(String port: portList) {
+                            String value = null;
+                            port = Integer.toString(Integer.parseInt(port) * 2);
+                            if(port.compareTo(current_port) == 0){
+                                Log.v("###querying in client:", query_stuff[1]);
+                                FileInputStream input = getContext().openFileInput(query_stuff[1]);
+                                InputStreamReader inputReader = new InputStreamReader(input);
+                                BufferedReader reader = new BufferedReader(inputReader);
+                                value = reader.readLine();
+                                if(value != null){
+                                    values.add(value);
+                                    if(non_null_port != null){
+                                        non_null_port = port;
+                                    }
+                                }
+                                continue;
                             }
-                        }
-                        query = false;
-                        return result;
-                    }
-                }
-                else {
-                    Socket socket = new Socket(InetAddress.getByAddress(new byte[]{10, 0, 2, 2}),
-                            (Integer.parseInt(port)));
-                    ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
-                    out.writeObject(node1);
-//                    System.out.println("### message flushed from client");
-                    out.flush();
-                    String value = null;
-                    while (true) {
-                        InputStreamReader inputStream = new InputStreamReader(socket.getInputStream());
-                        BufferedReader bufferedReader = new BufferedReader(inputStream);
-                        msgReceived = bufferedReader.readLine();
-//                        System.out.println("msgReceived :" + msgReceived);
-                        if (msgReceived != null && !msgReceived.isEmpty()) {
-                            value = msgReceived;
+                            Log.v("###querying in client :", query_stuff[1]+" "+port);
+                            Socket socket = new Socket(InetAddress.getByAddress(new byte[]{10, 0, 2, 2}),
+                                    (Integer.parseInt(port)));
+//                            System.out.println("port used for query " + port + " and selection is " + query_stuff[1]);
+                            PrintWriter out = new PrintWriter(socket.getOutputStream());
+                            out.write(query_data + "\n");
+                            out.flush();
+                            InputStreamReader inputStream = new InputStreamReader(socket.getInputStream());
+                            BufferedReader bufferedReader = new BufferedReader(inputStream);
+                            value = bufferedReader.readLine();
+                            values.add(value);
+                            if(value != null){
+                                final_value = value;
+                                if(non_null_port != null){
+                                    non_null_port = port;
+                                }
+                            }
                             bufferedReader.close();
                             inputStream.close();
                             out.close();
                             socket.close();
-                            break;
+                        }
+                        int a = 0;
+                        for(String val : values){
+                            if(Collections.frequency(values, val) > a){
+                                a = Collections.frequency(values, val);
+                                if(val != null){
+                                final_value = val;
+                                }
+                            }
+                        }
+                        query = false;
+//                        System.out.println("result retrieved in client " + final_value);
+                        return final_value;
+                }
+                else if(query_ga) {
+                    ArrayList<ConcurrentHashMap<String, String>> result = new ArrayList<ConcurrentHashMap<String, String>>();
+                    for (String port : hashValues.keySet()) {
+                        try {
+                            port = Integer.toString(Integer.parseInt(port) * 2);
+                            Socket socket = new Socket(InetAddress.getByAddress(new byte[]{10, 0, 2, 2}),
+                                    (Integer.parseInt(port)));
+                            PrintWriter out = new PrintWriter(socket.getOutputStream());
+                            out.write(query_ga_data + "\n");
+                            out.flush();
+                            ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
+                            ConcurrentHashMap<String, String> map = (ConcurrentHashMap<String, String>) in.readObject();
+//                            System.out.println("data for query global in client is" + map);
+                            result.add(map);
+                            in.close();
+                            out.close();
+                            socket.close();
+                        }catch(Exception e){
+//                            e.printStackTrace();
+                            continue;
                         }
                     }
-                    return value;
+                    query = false;
+                    return result;
                 }
-
             }  catch (UnknownHostException e) {
-                Log.e(TAG, "ClientTask UnknownHostException");
-            } catch (ClassNotFoundException e) {
-                Log.e(TAG, "ClientTask UnknownHostException");
-            } catch (IOException e) {
-                callClient();
-                e.printStackTrace();
-                Log.e(TAG, "ClientTask socket IOException");
+//                Log.e(TAG, "ClientTask UnknownHostException");
+            }  catch (IOException e) {
+//                e.printStackTrace();
+//                Log.e(TAG, "ClientTask socket IOException");
+            } catch(Exception e){
+//                e.printStackTrace();
             }
-
             return null;
         }
-
-        private void callClient(){
-            new ClientTask(node1, node1.getSuccessor()).executeOnExecutor(AsyncTask.SERIAL_EXECUTOR);
-        }
     }
-
-
 }
